@@ -97,6 +97,10 @@ uv run pytest
 - **營業時段/容量**:`server/booking_db.py` 頂部常數。
 - **聲音**:`voice="Kore"` 可換 Aoede、Charon、Fenrir、Puck。
 
+## 延伸教學
+
+從電話訂位、交換機架構到這個專案的完整程式碼解析：[docs/tutorial/語音客服系統教學.md](docs/tutorial/語音客服系統教學.md)
+
 ## ⚠️ 安全性提醒
 
 `server/.env` 含真實 API key,`.gitignore` 需排除 `.env`;管理後台無身分驗證,僅供本機 demo。
