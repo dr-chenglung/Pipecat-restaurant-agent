@@ -1,0 +1,33 @@
+# ---- 機密 / 環境變數 ----
+.env
+.env.*
+!*.env.example
+!env.example
+
+# ---- Python (server) ----
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# ---- Node (client) ----
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ---- 編輯器 / OS ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- 執行期資料 ----
+server/data/*.db
+server/data/*.db-journal
+
+# ---- Claude Code 開發過程筆記(個人用,不上傳) ----
+docs/superpowers/

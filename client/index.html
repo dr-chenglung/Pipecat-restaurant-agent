@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>悅來餐廳 訂位專線</title>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header with controls -->
+    <div class="header">
+      <div class="app-title">
+        <h1>悅來餐廳 訂位專線</h1>
+        <span class="subtitle">用說的訂位:查空位、訂位、改期、取消,小悅幫你辦好</span>
+      </div>
+      <div class="transport-selector">
+        <label for="transport-select">Transport:</label>
+        <select id="transport-select">
+          <option value="smallwebrtc">SmallWebRTC</option>
+        </select>
+      </div>
+      <div class="controls">
+        <a class="admin-link" href="http://localhost:7861/admin" target="_blank">店員後台</a>
+        <button id="mic-btn" class="control-btn" disabled>
+          🎤 <span id="mic-status">麥克風關閉</span>
+        </button>
+        <button id="connect-btn" class="connect-btn">撥打訂位專線</button>
+      </div>
+    </div>
+
+    <!-- Main content area with 50/50 split -->
+    <div class="main-content">
+      <!-- Video panel (left) -->
+      <div class="video-panel">
+        <div id="bot-video-container">
+          <div class="video-placeholder">
+            <span>撥打訂位專線後,小悅會出現在這裡</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conversation panel (right) -->
+      <div class="conversation-panel">
+        <h3>通話紀錄</h3>
+        <div id="conversation-log"></div>
+      </div>
+    </div>
+
+    <!-- Events panel -->
+    <div class="events-panel">
+      <h3>系統事件</h3>
+      <div id="events-log"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/app.js"></script>
+  <link rel="stylesheet" href="/src/style.css" />
+</body>
+
+</html>
