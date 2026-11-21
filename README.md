@@ -12,6 +12,15 @@ The assistant speaks Taiwanese Mandarin. This project is based on the sibling pr
 [`Pipecat-interview-coach`](../Pipecat-interview-coach) (a voice mock interviewer).
 That project shows how to give the bot a role; this project shows how the bot can **call tools to get work done**.
 
+## Screenshot
+
+![The booking page with a full voice call, and the staff dashboard with the new booking](docs/images/system-screenshot.png)
+
+The top part is the booking page after a real call: Xiao Yue's lines and the customer's lines (「我」, "me")
+are shown in order, from the greeting to goodbye. The bottom part is the staff dashboard: booking #14,
+made by voice in this call, is highlighted. The customer's lines are written by Gemini's speech
+recognition, so they may appear in Simplified Chinese.
+
 ## Demo video
 
 [docs/demo/restaurant-agent-demo.mp4](docs/demo/restaurant-agent-demo.mp4) (about 3 minutes):

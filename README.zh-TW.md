@@ -6,6 +6,12 @@
 
 本專案基於同層的 [`Pipecat-interview-coach`](../Pipecat-interview-coach)(語音模擬面試官)改造;那個專案展示「角色塑造」,這個專案展示「工具呼叫做事」。
 
+## 系統畫面
+
+![訂位網頁的完整通話紀錄，以及店員後台的新訂位](docs/images/system-screenshot.png)
+
+上半部是一通實際通話結束後的訂位網頁：從小悅接起電話、客人（「我」）說明需求、覆誦確認，到完成訂位與道別，整段對話都在通話紀錄裡。下半部是店員後台，標示出這通電話用語音建立的第 14 號訂位。客人說的話是由 Gemini 的語音辨識轉成文字，所以可能會以簡體字顯示。
+
 ## 展示影片
 
 [docs/demo/restaurant-agent-demo.mp4](docs/demo/restaurant-agent-demo.mp4)(約 3 分鐘):前段是一通完整的訂位電話(約 1 分鐘),後段是英文旁白的架構與工具說明。影片中客人的聲音是語音合成(edge-tts)。
