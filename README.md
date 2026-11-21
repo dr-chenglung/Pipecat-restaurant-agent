@@ -39,7 +39,7 @@ recognition, so they may appear in Simplified Chinese.
 | Who uses it | Customers who want to book a table, and the restaurant staff who check the bookings. |
 | The problem today | A person must answer every call, check the booking book, and write the booking down by hand. Calls are missed and mistakes happen. |
 | The goal | A customer can book, check, change, or cancel a table in one short voice call, at any time, and the booking is saved for the staff at once. |
-| Why a general AI chat cannot do it as well | A chat AI does not know the restaurant's free tables and cannot save a booking. Here, the model calls tools that read and write the real booking database. |
+| Its strengths | It answers every call at once, checks the real free tables, and saves the booking into the database for the staff, with no one writing it down by hand. The model calls tools that read and write the real booking database, so it does not just guess. |
 
 ## How does it "do work"?
 
@@ -204,13 +204,9 @@ uv run pytest
 A full tutorial (in Chinese) covers phone booking, the system architecture, and a walkthrough of this
 project's code: [docs/tutorial/語音客服系統教學.md](docs/tutorial/語音客服系統教學.md)
 
-## How AI tools were used
+## AI tools used
 
-| | |
-|---|---|
-| Which AI tools | Claude Code (Claude models) |
-| Where | In the terminal and VS Code, working directly on this repository |
-| What for | Writing and testing the code, the system prompt, this README, the screenshots, and the demo video (the call recording, the editing, and the English narration) |
+Claude Code (Claude models).
 
 ## References and credits
 
