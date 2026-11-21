@@ -2,6 +2,8 @@
 
 # Yuelai Restaurant Voice Booking Agent (Pipecat + Gemini Live + Function Calling)
 
+> A voice booking assistant for a restaurant: customers book, check, change, or cancel a table just by talking, and every booking is saved into a real database for the staff.
+
 This is a **voice assistant that does real work**, built with [Pipecat](https://github.com/pipecat-ai/pipecat).
 You open a web page, use your microphone to "call" Yuelai Restaurant (悅來餐廳), and talk with
 Xiao Yue (小悅), the booking assistant. By voice, you can **check free tables, book a table,
@@ -12,6 +14,14 @@ The assistant speaks Taiwanese Mandarin. This project is based on the sibling pr
 [`Pipecat-interview-coach`](../Pipecat-interview-coach) (a voice mock interviewer).
 That project shows how to give the bot a role; this project shows how the bot can **call tools to get work done**.
 
+## Demo video
+
+[![Watch the demo video (3 min 20 s)](https://img.youtube.com/vi/zbwwdro6uKA/hqdefault.jpg)](https://youtu.be/zbwwdro6uKA)
+
+The video (3 min 20 s) has two parts: a full booking call (about 1 minute), and then an English explanation
+of the architecture and the tools. In the video, the customer's voice is synthesized speech (edge-tts).
+A copy of the video is also in this repository: [docs/demo/restaurant-agent-demo.mp4](docs/demo/restaurant-agent-demo.mp4).
+
 ## Screenshot
 
 ![The booking page with a full voice call, and the staff dashboard with the new booking](docs/images/system-screenshot.png)
@@ -21,11 +31,15 @@ are shown in order, from the greeting to goodbye. The bottom part is the staff d
 made by voice in this call, is highlighted. The customer's lines are written by Gemini's speech
 recognition, so they may appear in Simplified Chinese.
 
-## Demo video
+## The problem and who it is for
 
-[docs/demo/restaurant-agent-demo.mp4](docs/demo/restaurant-agent-demo.mp4) (about 3 minutes):
-a full booking call (about 1 minute), followed by an English explanation of the architecture and the tools.
-In the video, the customer's voice is synthesized speech (edge-tts).
+| | |
+|---|---|
+| The situation | At busy hours, the restaurant phone keeps ringing for bookings, while the staff are serving guests. |
+| Who uses it | Customers who want to book a table, and the restaurant staff who check the bookings. |
+| The problem today | A person must answer every call, check the booking book, and write the booking down by hand. Calls are missed and mistakes happen. |
+| The goal | A customer can book, check, change, or cancel a table in one short voice call, at any time, and the booking is saved for the staff at once. |
+| Why a general AI chat cannot do it as well | A chat AI does not know the restaurant's free tables and cannot save a booking. Here, the model calls tools that read and write the real booking database. |
 
 ## How does it "do work"?
 
@@ -53,6 +67,8 @@ Each time slot holds at most 20 guests.
 
 ## Architecture
 
+![System architecture, the Pipecat pipeline, and the five booking tools](docs/images/architecture.png)
+
 ```
 Browser client (5173)  ←WebRTC→  bot server (7860, Pipecat + Gemini Live)
                                      │ function calling
@@ -66,6 +82,48 @@ Staff browser  ←HTTP→  admin server (7861, FastAPI /admin + /api/bookings)
 - **Bot server**: Python + Pipecat. It passes the audio to Gemini Live and runs the tools.
 - **Gemini Live**: Google's speech-to-speech model. It listens, decides when to call a tool, and speaks the reply.
 - **Admin server**: a FastAPI page that shows all bookings.
+
+### Listen, think, speak
+
+| Step | What happens | Model or service |
+|---|---|---|
+| Listen | The customer's voice goes to the server; the system finds when the customer starts and stops talking | WebRTC (SmallWebRTC), Silero VAD + Smart Turn |
+| Think | The model understands the request and calls a booking tool when it needs data | Gemini Live (`gemini-3.1-flash-live-preview`) + function calling |
+| Speak | The model speaks the reply directly (no separate text-to-speech) | Gemini Live, voice `Kore` |
+| Screen | The page plays the voice, shows the conversation as text, and shows a talking character | Vite web page + Pipecat JS client |
+
+### Technologies and frameworks
+
+| | What is used |
+|---|---|
+| Language | Python 3.11+ (server), JavaScript (web page) |
+| Speech model and API | Gemini Live API (speech in, speech out, with function calling) |
+| Agent framework | Pipecat 1.5 (pipeline, transports, function calling) |
+| User interface | Vite web page with the Pipecat JS client; FastAPI staff dashboard |
+| Other libraries and tools | SQLite, Silero VAD, Smart Turn, uv, pytest |
+| Where it runs | A Windows computer (localhost); only the Gemini model runs in Google's cloud |
+
+### The hardest part
+
+The hardest part is making sure a booking is **real and correct**, not just a nice sentence.
+A language model can say "Your table is booked" without saving anything, or turn "tomorrow" into the wrong date.
+To stop this, the system prompt has strict rules: always call a tool, never pretend, and repeat all details to the
+customer before calling `create_booking`. The server puts today's date into the prompt at the start of each call,
+so words like "tomorrow" and "next Friday" become the right date. Finally, `booking_db.py` checks every date, time,
+and party size; when something is wrong, the tool returns an error message that the assistant explains to the customer.
+
+## Results
+
+- **What works well**: A full booking call (check, give name and phone, confirm, save) works in about one minute,
+  and the booking appears in the staff dashboard within two seconds.
+- **Speed**: In our test calls, the reply started about 0.5–1.2 s after the customer finished speaking.
+- **What does not work well yet**:
+  - The customer's words are written by Gemini's speech recognition, which often uses Simplified Chinese.
+  - If the customer pauses in the middle of a sentence, the assistant may start to answer too early.
+  - With the preview model, the assistant's voice sometimes became lower for a moment.
+- **What we would add next**: convert the customer's text to Traditional Chinese (for example with OpenCC),
+  test the newer `gemini-3.8-live` model, connect a real phone line (Pipecat supports Twilio and other telephone
+  transports), and add a login to the staff dashboard.
 
 ## Requirements
 
@@ -145,6 +203,23 @@ uv run pytest
 
 A full tutorial (in Chinese) covers phone booking, the system architecture, and a walkthrough of this
 project's code: [docs/tutorial/語音客服系統教學.md](docs/tutorial/語音客服系統教學.md)
+
+## How AI tools were used
+
+| | |
+|---|---|
+| Which AI tools | Claude Code (Claude models) |
+| Where | In the terminal and VS Code, working directly on this repository |
+| What for | Writing and testing the code, the system prompt, this README, the screenshots, and the demo video (the call recording, the editing, and the English narration) |
+
+## References and credits
+
+- **Framework**: [Pipecat](https://github.com/pipecat-ai/pipecat) and its [documentation](https://docs.pipecat.ai/)
+- **Documentation**: [Gemini Live API](https://ai.google.dev/gemini-api/docs/live)
+- **Models and services**: Google Gemini Live (`gemini-3.1-flash-live-preview`); [Silero VAD](https://github.com/snakers4/silero-vad) and [Smart Turn](https://github.com/pipecat-ai/smart-turn) for turn detection
+- **Data**: the restaurant, its opening hours, and the sample bookings are made up for this demo
+- **Voices**: the assistant's voice is the Gemini Live voice `Kore`. In the demo video, the customer's voice is synthesized with [edge-tts](https://github.com/rany2/edge-tts) (`zh-TW-YunJheNeural`), and the English narration with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M)
+- **Code from others**: the web client was created from the Pipecat CLI template (`pipecat-cli`); `server/bot-concierge.py` starts from a Pipecat example (Copyright Daily, BSD 2-Clause License); the project is adapted from the sibling project `Pipecat-interview-coach`
 
 ## ⚠️ Security notes
 
