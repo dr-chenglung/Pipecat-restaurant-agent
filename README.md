@@ -1,54 +1,78 @@
-# 悅來餐廳 語音訂位客服(Pipecat + Gemini Live + Function Calling)
+**English** | [繁體中文](README.zh-TW.md)
 
-用 [Pipecat](https://github.com/pipecat-ai/pipecat) 搭建的**會做事的語音助理**:在瀏覽器用麥克風打「電話」給悅來餐廳的訂位專員「小悅」,用說的完成**查空位、訂位、查詢、改期、取消**。所有異動透過 Gemini Live 的 **function calling** 真實寫入 SQLite 資料庫,並可在店員管理後台即時看到。
+# Yuelai Restaurant Voice Booking Agent (Pipecat + Gemini Live + Function Calling)
 
-本專案基於同層的 [`Pipecat-interview-coach`](../Pipecat-interview-coach)(語音模擬面試官)改造;那個專案展示「角色塑造」,這個專案展示「工具呼叫做事」。
+This is a **voice assistant that does real work**, built with [Pipecat](https://github.com/pipecat-ai/pipecat).
+You open a web page, use your microphone to "call" Yuelai Restaurant (悅來餐廳), and talk with
+Xiao Yue (小悅), the booking assistant. By voice, you can **check free tables, book a table,
+look up a booking, change a booking, and cancel a booking**. Every change is written into a real
+SQLite database through Gemini Live **function calling**, and you can see it at once in the staff dashboard.
 
-## 它怎麼「做事」?
+The assistant speaks Taiwanese Mandarin. This project is based on the sibling project
+[`Pipecat-interview-coach`](../Pipecat-interview-coach) (a voice mock interviewer).
+That project shows how to give the bot a role; this project shows how the bot can **call tools to get work done**.
+
+## Demo video
+
+[docs/demo/restaurant-agent-demo.mp4](docs/demo/restaurant-agent-demo.mp4) (about 3 minutes):
+a full booking call (about 1 minute), followed by an English explanation of the architecture and the tools.
+In the video, the customer's voice is synthesized speech (edge-tts).
+
+## How does it "do work"?
 
 ```
-你說「我想訂明天晚上七點,四個人」
-  → Gemini Live 判斷需要查詢,發出工具呼叫 check_availability("2026-07-20", "19:00", 4)
-  → Python 真的去查 SQLite → 回傳結果給模型
-  → 小悅:「明天晚上七點還有位子喔,請問怎麼稱呼?方便留個電話嗎?」
-  → 確認後呼叫 create_booking(...) → 資料庫多一筆訂位
-  → 店員後台 (http://localhost:7861/admin) 兩秒內就會顯示這筆訂位
+You say: "I want a table for four, tomorrow at 7 pm."
+  → Gemini Live decides it must check, and calls the tool check_availability("2026-07-20", "19:00", 4)
+  → Python really queries SQLite → the result goes back to the model
+  → Xiao Yue: "We have a table tomorrow at 7 pm. May I have your name and phone number?"
+  → After the customer confirms, it calls create_booking(...) → a new booking is saved
+  → The staff dashboard (http://localhost:7861/admin) shows it within two seconds
 ```
 
-五個工具(`server/bot-concierge.py` 內的 direct functions,實作在 `server/booking_db.py`):
+There are five tools. They are direct functions in `server/bot-concierge.py`, and the real logic is in `server/booking_db.py`:
 
-| 工具 | 功能 |
+| Tool | What it does |
 |---|---|
-| `check_availability` | 查某日某時段是否有位;滿位回傳替代時段 |
-| `create_booking` | 建立訂位(覆誦確認後才呼叫) |
-| `find_bookings` | 用電話號碼查有效訂位 |
-| `update_booking` | 改期/改時段/改人數(先驗新時段容量) |
-| `cancel_booking` | 取消訂位,容量釋出 |
+| `check_availability` | Checks if a time slot on a date has free seats; if it is full, it returns other free time slots |
+| `create_booking` | Creates a booking (called only after the assistant repeats the details and the customer confirms) |
+| `find_bookings` | Finds active bookings by phone number |
+| `update_booking` | Changes the date, time, or party size (checks the new slot's capacity first) |
+| `cancel_booking` | Cancels a booking and frees the seats |
 
-營業規則:午餐 11:00–13:30、晚餐 17:00–20:30(30 分鐘一時段),每時段 20 人。
+Opening rules: lunch 11:00–13:30 and dinner 17:00–20:30 (last booking times, in 30-minute slots).
+Each time slot holds at most 20 guests.
 
-## 架構
+## Architecture
 
 ```
-瀏覽器 client (5173)  ←WebRTC→  bot server (7860, Pipecat + Gemini Live)
+Browser client (5173)  ←WebRTC→  bot server (7860, Pipecat + Gemini Live)
                                      │ function calling
                                      ▼
                               booking_db.py ←→ server/data/bookings.db (SQLite)
                                      ▲
-店員瀏覽器  ←HTTP→  admin server (7861, FastAPI /admin + /api/bookings)
+Staff browser  ←HTTP→  admin server (7861, FastAPI /admin + /api/bookings)
 ```
 
-## 環境需求
+- **Browser client**: a Vite web page with the Pipecat JS client. It sends your voice and plays the bot's voice and video.
+- **Bot server**: Python + Pipecat. It passes the audio to Gemini Live and runs the tools.
+- **Gemini Live**: Google's speech-to-speech model. It listens, decides when to call a tool, and speaks the reply.
+- **Admin server**: a FastAPI page that shows all bookings.
 
-- **Windows**(批次檔為 Windows 寫的)
-- **Python 3.11+** 與 [**uv**](https://docs.astral.sh/uv/)
+## Requirements
+
+- **Windows** (the batch files are written for Windows)
+- **Python 3.11+** and [**uv**](https://docs.astral.sh/uv/)
 - **Node.js 18+**
-- **Google Gemini API Key**:<https://aistudio.google.com/apikey>
+- **Google Gemini API key**: <https://aistudio.google.com/apikey>
 
-## 設定與安裝
+You need **only one key**: `GOOGLE_API_KEY`. No other service (Daily, ElevenLabs, Deepgram, OpenAI)
+is used, because the browser connects to the server directly with SmallWebRTC.
 
-1. `server/.env` 填入 `GOOGLE_API_KEY=你的金鑰`(**勿進版控**)。
-2. 安裝依賴:
+## Setup
+
+1. Copy `server/env.example` to `server/.env`, then set `GOOGLE_API_KEY=your-key`.
+   (**Never commit `.env` to git.**)
+2. Install the dependencies:
 
    ```powershell
    cd server
@@ -57,50 +81,63 @@
    npm install
    ```
 
-## 執行
+## Run
 
 ```powershell
 .\start.bat
 ```
 
-會開三個視窗:
+This opens three windows:
 
-- **訂位專線網頁** → <http://localhost:5173>(按「撥打訂位專線」開始)
-- **店員管理後台** → <http://localhost:7861/admin>(即時看訂位進資料庫)
-- bot 後端 API → <http://localhost:7860>
+- **Booking web page** → <http://localhost:5173> (click 「撥打訂位專線」 to start the call)
+- **Staff dashboard** → <http://localhost:7861/admin> (watch bookings appear in the database)
+- Bot server API → <http://localhost:7860>
 
-建議把訂位網頁與管理後台並排開,語音訂完位立刻看到資料出現。停止:`.\stop.bat`。
+Put the booking page and the staff dashboard side by side. Then you can see each booking appear
+right after you make it by voice. To stop everything: `.\stop.bat`.
 
-首次啟動會自動建立 `server/data/bookings.db` 並塞入幾筆示範訂位。想重置資料,關掉服務後刪除該檔即可。
+On the first start, the server creates `server/data/bookings.db` and adds a few sample bookings.
+To reset the data, stop the services and delete that file.
 
-## 測試
+## Tests
 
-訂位資料層有完整單元測試(容量、滿位、改期、取消釋出容量等):
+The booking data layer has unit tests (capacity, full slots, changes, cancellations that free seats, and more):
 
 ```powershell
 cd server
 uv run pytest
 ```
 
-## 試用劇本建議
+## Things to try
 
-1. 「我想訂明天晚上七點,四個人」→ 走完訂位流程,聽小悅覆誦確認。
-2. 到管理後台看新訂位出現。
-3. 「我想查一下我的訂位」→ 報電話號碼。
-4. 「幫我改到八點」→ 後台同步更新。
-5. 「取消好了」→ 後台顯示已取消。
-6. 試試客滿情境:同時段訂到滿,再訂一次聽小悅推薦替代時段。
+1. "我想訂明天晚上七點，四個人" (a table for four, tomorrow at 7 pm) → finish the booking and listen to Xiao Yue repeat the details.
+2. Open the staff dashboard and see the new booking.
+3. "我想查一下我的訂位" (I want to check my booking) → give your phone number.
+4. "幫我改到八點" (change it to 8 pm) → the dashboard updates.
+5. "取消好了" (please cancel it) → the dashboard shows it as cancelled.
+6. Try a full slot: fill one time slot, then book again. Xiao Yue will suggest other times.
 
-## 想調整?
+## How to customize
 
-- **人設/流程/規則話術**:`server/bot-concierge.py` 的 `build_system_instruction()`。
-- **營業時段/容量**:`server/booking_db.py` 頂部常數。
-- **聲音**:`voice="Kore"` 可換 Aoede、Charon、Fenrir、Puck。
+- **Role, call flow, and rules**: edit `server/prompts/system_prompt.md`.
+  The server reads this file at the start of each call, and fills in today's date for `{{TODAY}}` and `{{WEEKDAY}}`.
+- **Opening hours and capacity**: the constants at the top of `server/booking_db.py`.
+- **Model and voice**: set them in `server/.env`:
 
-## 延伸教學
+  ```
+  GEMINI_LIVE_MODEL=models/gemini-3.8-live
+  GEMINI_LIVE_VOICE=Kore
+  ```
 
-從電話訂位、交換機架構到這個專案的完整程式碼解析：[docs/tutorial/語音客服系統教學.md](docs/tutorial/語音客服系統教學.md)
+  `server/env.example` uses `gemini-3.8-live`. If `GEMINI_LIVE_MODEL` is not set, the code uses
+  `models/gemini-3.1-flash-live-preview` (the model used in the demo video). Other voices: Aoede, Charon, Fenrir, Puck.
 
-## ⚠️ 安全性提醒
+## Further reading
 
-`server/.env` 含真實 API key,`.gitignore` 需排除 `.env`;管理後台無身分驗證,僅供本機 demo。
+A full tutorial (in Chinese) covers phone booking, the system architecture, and a walkthrough of this
+project's code: [docs/tutorial/語音客服系統教學.md](docs/tutorial/語音客服系統教學.md)
+
+## ⚠️ Security notes
+
+`server/.env` holds a real API key, so `.gitignore` must exclude `.env`.
+The staff dashboard has no login. Use it only as a local demo.

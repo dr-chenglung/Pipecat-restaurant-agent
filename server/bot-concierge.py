@@ -21,7 +21,9 @@ Run the bot using::
 """
 
 import os
+import re
 from datetime import date
+from pathlib import Path
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -90,39 +92,16 @@ sprites.extend(flipped)
 quiet_frame = sprites[0]  # Static frame for when bot is listening
 talking_frame = SpriteFrame(images=sprites)  # Animation sequence for when bot is talking
 
+PROMPT_PATH = Path(__file__).parent / "prompts" / "system_prompt.md"
+
+
 def build_system_instruction() -> str:
-    """組出系統提示詞,注入今天日期讓「明天」「下週五」能正確換算。"""
+    """讀取 prompts/system_prompt.md,注入今天日期讓「明天」「下週五」能正確換算。"""
     today = date.today()
     weekday = "一二三四五六日"[today.weekday()]
-    return f"""
-你是「小悅」,悅來餐廳的訂位專員,正在接聽客人打來的訂位電話。
-
-今天的日期是 {today.isoformat()},星期{weekday}。客人說「明天」「後天」「下週五」時,請以此換算成正確日期。
-
-你的性格:親切、有效率的台灣餐廳店員。口吻自然溫暖,像熟練的服務人員,不卑不亢,不過度客套。
-
-餐廳資訊:
-- 悅來餐廳,提供中式合菜與單點。
-- 營業時段:午餐十一點到下午兩點,晚餐五點到九點。訂位以三十分鐘為單位,午餐最後可訂一點半,晚餐最後可訂八點半。
-- 每個時段最多容納二十位客人,單筆訂位最多二十人。
-
-服務流程:
-1. 接起電話先報店名問好,問客人需要什麼服務。
-2. 訂位:先問清楚日期、時間、人數,用 check_availability 查詢。有位子就跟客人要姓名與電話,跟客人覆誦一次日期、時間、人數、姓名、電話,客人確認沒錯之後,才用 create_booking 真正下訂,最後告訴客人訂位編號。
-3. 客滿時,主動把查詢結果裡的替代時段唸給客人聽,詢問要不要改訂。
-4. 查詢、改期、取消:先跟客人要電話號碼,用 find_bookings 查出訂位,跟客人確認是哪一筆之後,再用 update_booking 或 cancel_booking 處理。
-5. 完成後簡短總結這通電話辦好的事,並謝謝客人來電。
-
-工具使用紀律,非常重要:
-- 凡是查空位、訂位、查詢、改期、取消,一定要呼叫對應的工具,絕對不可以憑空回答、假裝查過或假裝訂好了。
-- 工具回傳 error 時,把原因用口語向客人說明,並引導客人提供正確的資訊。
-- 日期傳給工具時一律用 YYYY-MM-DD 格式,時間用 HH:MM 格式。
-
-輸出規範,非常重要:
-- 全程使用台灣慣用的中文口語。
-- 你的回覆會被轉成語音,所以絕對不要輸出特殊符號、表情符號、markdown 格式或條列符號,數字與時間用中文讀法講出來,例如晚上七點半、四位。
-- 每次回覆保持口語化且簡短,像真人店員講電話,不要長篇大論。
-"""
+    text = PROMPT_PATH.read_text(encoding="utf-8")
+    text = re.sub(r"<!--.*?-->\s*", "", text, flags=re.S)  # 去掉檔頭說明註解
+    return text.replace("{{TODAY}}", today.isoformat()).replace("{{WEEKDAY}}", weekday)
 
 
 # ---------------------------------------------------------------------------
@@ -256,9 +235,9 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     llm = GeminiLiveLLMService(
         api_key=os.getenv("GOOGLE_API_KEY"),
         settings=GeminiLiveLLMService.Settings(
-            model="models/gemini-3.1-flash-live-preview",
+            model=os.getenv("GEMINI_LIVE_MODEL", "models/gemini-3.1-flash-live-preview"),
             system_instruction=build_system_instruction(),
-            voice="Kore",  # Aoede, Charon, Fenrir, Kore, Puck
+            voice=os.getenv("GEMINI_LIVE_VOICE", "Kore"),  # Aoede, Charon, Fenrir, Kore, Puck
         ),
     )
 
